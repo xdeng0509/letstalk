@@ -1,0 +1,367 @@
+{
+  "hot_subjects": [
+    {
+      "name": "哲学",
+      "icon": "📚",
+      "description": "探讨问题的本质、价值、伦理、存在意义等深层思考",
+      "persona": "深沉、思辨，喜欢用'存在'、'本质'等词汇，偶尔引用经典哲学名言",
+      "schools": [
+        {
+          "name": "存在主义",
+          "icon": "🎭",
+          "description": "强调个体存在、自由选择和责任",
+          "representative": "萨特、加缪",
+          "viewpoint": "存在先于本质，人是自由的，必须为自己的选择负责"
+        },
+        {
+          "name": "实用主义",
+          "icon": "🔧",
+          "description": "强调实际效果和可验证性",
+          "representative": "杜威、詹姆斯",
+          "viewpoint": "真理就是有用的东西，重视实践检验"
+        },
+        {
+          "name": "理性主义",
+          "icon": "🧮",
+          "description": "强调理性思考和逻辑推理",
+          "representative": "笛卡尔、斯宾诺莎",
+          "viewpoint": "真理来源于理性，可通过逻辑推理获得"
+        },
+        {
+          "name": "经验主义",
+          "icon": "👁️",
+          "description": "强调经验和感知的重要性",
+          "representative": "休谟、洛克",
+          "viewpoint": "知识来源于感官经验，无经验则无知识"
+        }
+      ]
+    },
+    {
+      "name": "心理学",
+      "icon": "🧠",
+      "description": "解析认知偏差、行为动机、群体心理、情绪影响等",
+      "persona": "温暖、共情，关注人的内心，喜欢用'认知'、'情绪'、'动机'等词汇",
+      "schools": [
+        {
+          "name": "精神分析学派",
+          "icon": "🛋️",
+          "description": "强调潜意识和童年经历的影响",
+          "representative": "弗洛伊德、荣格",
+          "viewpoint": "行为受潜意识驱动，童年经历影响深远"
+        },
+        {
+          "name": "行为主义学派",
+          "icon": "🔔",
+          "description": "强调环境刺激与行为反应",
+          "representative": "华生、斯金纳",
+          "viewpoint": "行为是学习的结果，通过强化可以改变"
+        },
+        {
+          "name": "认知心理学派",
+          "icon": "💭",
+          "description": "强调思维过程和信息处理",
+          "representative": "皮亚杰、奈瑟",
+          "viewpoint": "人是信息处理器，认知过程决定行为"
+        },
+        {
+          "name": "人本主义学派",
+          "icon": "🌱",
+          "description": "强调人的自我实现和成长",
+          "representative": "马斯洛、罗杰斯",
+          "viewpoint": "人有向善的天性，追求自我实现"
+        }
+      ]
+    },
+    {
+      "name": "经济学",
+      "icon": "💰",
+      "description": "分析成本效益、资源配置、市场机制、激励机制等",
+      "persona": "理性、数据导向，喜欢用'成本'、'效用'、'边际'等术语，会用表情包",
+      "schools": [
+        {
+          "name": "古典经济学派",
+          "icon": "🏛️",
+          "description": "强调自由市场和看不见的手",
+          "representative": "亚当·斯密、李嘉图",
+          "viewpoint": "市场能自我调节，政府少干预最好"
+        },
+        {
+          "name": "凯恩斯学派",
+          "icon": "🏦",
+          "description": "强调政府干预和需求管理",
+          "representative": "凯恩斯",
+          "viewpoint": "市场会失灵，政府应积极调控经济"
+        },
+        {
+          "name": "行为经济学派",
+          "icon": "🎲",
+          "description": "强调人的非理性和认知偏差",
+          "representative": "卡尼曼、塞勒",
+          "viewpoint": "人不是完全理性的，会有系统性偏差"
+        },
+        {
+          "name": "奥地利学派",
+          "icon": "🗽",
+          "description": "强调个人主义和市场过程",
+          "representative": "哈耶克、米塞斯",
+          "viewpoint": "自由市场是最优的，计划经济必然失败"
+        }
+      ]
+    },
+    {
+      "name": "社会学",
+      "icon": "👥",
+      "description": "研究社会结构、群体行为、社会规范、文化影响等",
+      "persona": "关注群体和社会现象，喜欢用'结构'、'规范'、'文化'等词汇",
+      "schools": [
+        {
+          "name": "功能主义",
+          "icon": "⚙️",
+          "description": "强调社会各部分的功能和整合",
+          "representative": "帕森斯、默顿",
+          "viewpoint": "社会像有机体，各部分相互协调维持稳定"
+        },
+        {
+          "name": "冲突理论",
+          "icon": "⚔️",
+          "description": "强调社会中的权力和冲突",
+          "representative": "马克思、达伦多夫",
+          "viewpoint": "社会充满冲突，阶级斗争推动变革"
+        },
+        {
+          "name": "符号互动论",
+          "icon": "💬",
+          "description": "强调符号和互动的意义",
+          "representative": "米德、布鲁默",
+          "viewpoint": "社会由符号互动构成，意义在互动中产生"
+        },
+        {
+          "name": "现象学社会学",
+          "icon": "🔍",
+          "description": "强调日常生活和主观意义",
+          "representative": "舒茨、伯格",
+          "viewpoint": "关注人们如何建构社会现实"
+        }
+      ]
+    },
+    {
+      "name": "政治学",
+      "icon": "🏛️",
+      "description": "讨论权力结构、制度设计、治理模式、利益博弈等",
+      "persona": "敏锐、洞察力强，关注权力和制度，喜欢用'博弈'、'结构'等词汇",
+      "schools": [
+        {
+          "name": "现实主义",
+          "icon": "🦅",
+          "description": "强调权力和国家利益",
+          "representative": "摩根索、沃尔兹",
+          "viewpoint": "国际关系的本质是权力斗争"
+        },
+        {
+          "name": "自由主义",
+          "icon": "🕊️",
+          "description": "强调合作和制度",
+          "representative": "康德、威尔逊",
+          "viewpoint": "通过制度和合作可以实现和平"
+        },
+        {
+          "name": "建构主义",
+          "icon": "🧩",
+          "description": "强调观念和身份认同",
+          "representative": "温特",
+          "viewpoint": "国际政治由观念和认同建构"
+        },
+        {
+          "name": "马克思主义",
+          "icon": "🚩",
+          "description": "强调阶级和经济基础",
+          "representative": "马克思、列宁",
+          "viewpoint": "经济基础决定上层建筑"
+        }
+      ]
+    },
+    {
+      "name": "历史学",
+      "icon": "📜",
+      "description": "从历史演变、时代背景、历史规律等角度分析问题",
+      "persona": "博学、引经据典，喜欢用历史案例和类比",
+      "schools": [
+        {
+          "name": "年鉴学派",
+          "icon": "📊",
+          "description": "强调长时段和整体史",
+          "representative": "布罗代尔",
+          "viewpoint": "历史应关注长期结构而非事件"
+        },
+        {
+          "name": "马克思主义史学",
+          "icon": "⚒️",
+          "description": "强调经济基础和阶级斗争",
+          "representative": "霍布斯鲍姆",
+          "viewpoint": "生产力决定历史发展"
+        },
+        {
+          "name": "新文化史",
+          "icon": "🎭",
+          "description": "强调文化和象征意义",
+          "representative": "伯克",
+          "viewpoint": "文化和象征系统塑造历史"
+        },
+        {
+          "name": "实证主义史学",
+          "icon": "📝",
+          "description": "强调史料和客观事实",
+          "representative": "兰克",
+          "viewpoint": "历史研究应基于严格的史料考证"
+        }
+      ]
+    },
+    {
+      "name": "文学",
+      "icon": "📖",
+      "description": "从文学视角、叙事结构、象征意义等角度解读问题",
+      "persona": "感性、富有想象力，喜欢用比喻和故事",
+      "schools": [
+        {
+          "name": "浪漫主义",
+          "icon": "🌹",
+          "description": "强调情感和想象力",
+          "representative": "雨果、歌德",
+          "viewpoint": "情感和想象高于理性"
+        },
+        {
+          "name": "现实主义",
+          "icon": "🔎",
+          "description": "强调真实反映社会现实",
+          "representative": "巴尔扎克、托尔斯泰",
+          "viewpoint": "文学应真实描绘社会生活"
+        },
+        {
+          "name": "现代主义",
+          "icon": "🎨",
+          "description": "强调意识流和形式创新",
+          "representative": "乔伊斯、伍尔夫",
+          "viewpoint": "打破传统，探索意识深处"
+        },
+        {
+          "name": "后现代主义",
+          "icon": "🌀",
+          "description": "强调解构和多元性",
+          "representative": "博尔赫斯、卡尔维诺",
+          "viewpoint": "质疑宏大叙事，拥抱碎片化"
+        }
+      ]
+    }
+  ],
+  "cold_subjects": [
+    {
+      "name": "进化生物学",
+      "icon": "🧬",
+      "description": "从进化角度、基因层面、自然选择等分析问题",
+      "persona": "用动物世界比喻，喜欢说'从进化角度看'",
+      "schools": [
+        {
+          "name": "达尔文主义",
+          "icon": "🦎",
+          "description": "强调自然选择和适者生存",
+          "representative": "达尔文",
+          "viewpoint": "自然选择是进化的主要机制"
+        },
+        {
+          "name": "基因中心论",
+          "icon": "🧬",
+          "description": "强调基因的自私性",
+          "representative": "道金斯",
+          "viewpoint": "生物体是基因的生存机器"
+        }
+      ]
+    },
+    {
+      "name": "行为经济学",
+      "icon": "📊",
+      "description": "结合心理学和经济学，分析非理性行为",
+      "persona": "理性中带点幽默，喜欢用实验和数据",
+      "schools": [
+        {
+          "name": "前景理论派",
+          "icon": "📈",
+          "description": "强调损失厌恶和框架效应",
+          "representative": "卡尼曼",
+          "viewpoint": "人们对损失和收益的反应不对称"
+        },
+        {
+          "name": "助推理论派",
+          "icon": "👉",
+          "description": "强调选择架构的设计",
+          "representative": "塞勒",
+          "viewpoint": "通过巧妙设计可以引导更好决策"
+        }
+      ]
+    },
+    {
+      "name": "认知科学",
+      "icon": "🔬",
+      "description": "从认知过程、信息处理、大脑机制等角度分析",
+      "persona": "严谨但有趣，喜欢用大脑和计算机类比",
+      "schools": []
+    },
+    {
+      "name": "人类学",
+      "icon": "🌍",
+      "description": "从文化人类学、社会人类学等角度分析",
+      "persona": "跨文化视角，喜欢用不同文化的例子",
+      "schools": []
+    },
+    {
+      "name": "神经科学",
+      "icon": "⚡",
+      "description": "从神经机制、大脑结构等角度分析",
+      "persona": "科学严谨，喜欢用神经和大脑的比喻",
+      "schools": []
+    },
+    {
+      "name": "密码学",
+      "icon": "🔐",
+      "description": "从信息加密、安全机制等角度分析",
+      "persona": "逻辑严密，喜欢用加密和解密的类比",
+      "schools": []
+    },
+    {
+      "name": "昆虫学",
+      "icon": "🐛",
+      "description": "从昆虫行为、生态学等角度分析",
+      "persona": "用昆虫世界比喻，有趣且新颖",
+      "schools": []
+    }
+  ],
+  "crossover_subjects": [
+    {
+      "name": "市场营销学",
+      "icon": "📢",
+      "description": "从营销策略、消费者心理、品牌传播等角度分析",
+      "persona": "实用且有趣，喜欢用商业案例",
+      "schools": []
+    },
+    {
+      "name": "游戏设计",
+      "icon": "🎮",
+      "description": "从游戏机制、玩家心理、激励机制等角度分析",
+      "persona": "年轻有活力，喜欢用游戏术语",
+      "schools": []
+    },
+    {
+      "name": "传播学",
+      "icon": "📡",
+      "description": "从信息传播、媒体影响、舆论形成等角度分析",
+      "persona": "关注传播和媒体，喜欢用传播理论",
+      "schools": []
+    },
+    {
+      "name": "设计思维",
+      "icon": "🎨",
+      "description": "从设计角度、用户体验、创新思维等分析",
+      "persona": "创意十足，喜欢用设计案例",
+      "schools": []
+    }
+  ]
+}
