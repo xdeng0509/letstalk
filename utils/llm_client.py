@@ -1,12 +1,14 @@
 """
-LLM客户端，用于调用大语言模型API（优先使用 Gemini，其次回退 OpenAI）
+LLM客户端，统一适配 Gemini / OpenAI / 腾讯慧言（HuiYuan） OpenAPI
 """
 import os
+import json
+from typing import Optional
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# 尝试加载 Gemini SDK
+# 可选 SDK
 _genai_available = False
 try:
     import google.generativeai as genai
@@ -14,7 +16,6 @@ try:
 except Exception:
     _genai_available = False
 
-# 尝试加载 OpenAI SDK
 _openai_available = False
 try:
     from openai import OpenAI
@@ -22,43 +23,75 @@ try:
 except Exception:
     _openai_available = False
 
+import requests
+
 
 class LLMClient:
-    """统一的 LLM 客户端，自动选择 Gemini 或 OpenAI"""
+    """统一的 LLM 客户端，支持三家提供方，通过环境变量选择：
+    - LLM_PROVIDER: gemini | openai | huiyuan（默认自动探测）
+    - 对应的 Key/模型：
+      - GEMINI_API_KEY, GEMINI_MODEL
+      - OPENAI_API_KEY, OPENAI_MODEL
+      - HUIYUAN_API_KEY, HUIYUAN_MODEL, HUIYUAN_BASE_URL, HUIYUAN_PATH（默认 /v1/chat/completions）
+    """
 
-    def __init__(self, model: str | None = None):
-        """
-        初始化 LLM 客户端。
-        选择策略：
-        - 如果配置了 GEMINI_API_KEY 且 Gemini SDK 可用：使用 Gemini（默认模型 gemini-1.5-flash）
-        - 否则，如果配置了 OPENAI_API_KEY 且 OpenAI SDK 可用：使用 OpenAI（默认模型 gpt-3.5-turbo）
-        - 否则抛错，由上层进入演示模式
-        """
+    def __init__(self, model: Optional[str] = None):
         self.provider = None
         self.model = None
+        self.client = None
+        self.base_url = None
+        self.path = None
+        self.headers = {}
+
+        provider_hint = (os.getenv("LLM_PROVIDER") or "").strip().lower()
 
         gemini_key = os.getenv("GEMINI_API_KEY")
         openai_key = os.getenv("OPENAI_API_KEY")
+        huiyuan_key = os.getenv("HUIYUAN_API_KEY")
+        huiyuan_base = os.getenv("HUIYUAN_BASE_URL")  # 例如：https://api.hunyuan.tencentcloudapi.com 或 OpenAI兼容网关
+        huiyuan_path = os.getenv("HUIYUAN_PATH", "/v1/chat/completions")
 
-        if gemini_key and _genai_available:
-            self.provider = "gemini"
-            genai.configure(api_key=gemini_key)
-            self.model = model or os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
-        elif openai_key and _openai_available:
-            self.provider = "openai"
-            self.client = OpenAI(api_key=openai_key)
-            self.model = model or os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
+        # 明确指定优先
+        if provider_hint == "gemini" and gemini_key and _genai_available:
+            self._init_gemini(gemini_key, model)
+        elif provider_hint == "openai" and openai_key and _openai_available:
+            self._init_openai(openai_key, model)
+        elif provider_hint == "huiyuan" and huiyuan_key and huiyuan_base:
+            self._init_huiyuan(huiyuan_key, huiyuan_base, huiyuan_path, model)
         else:
-            raise ValueError("未检测到可用的 LLM 配置：请设置 GEMINI_API_KEY 或 OPENAI_API_KEY 并安装相应 SDK")
+            # 自动探测：Gemini -> OpenAI -> HuiYuan
+            if gemini_key and _genai_available:
+                self._init_gemini(gemini_key, model)
+            elif openai_key and _openai_available:
+                self._init_openai(openai_key, model)
+            elif huiyuan_key and huiyuan_base:
+                self._init_huiyuan(huiyuan_key, huiyuan_base, huiyuan_path, model)
+            else:
+                raise ValueError("未检测到可用的 LLM 配置：请设置 GEMINI/OPENAI/HUIYUAN 的 API KEY 并安装相应 SDK/提供 base_url")
 
-    def generate_response(self, prompt: str, system_prompt: str | None = None, max_tokens: int = 200, temperature: float = 0.7) -> str:
-        """
-        生成通用文本回复（封装两家接口差异）。
-        - Gemini：使用 GenerativeModel.generate_content，将 system_prompt 与用户 prompt 合并为单次请求（保持简洁稳定）
-        - OpenAI：使用 chat.completions.create，传入 system 与 user 两条消息
-        """
+    def _init_gemini(self, api_key: str, model_override: Optional[str]):
+        self.provider = "gemini"
+        genai.configure(api_key=api_key)
+        self.model = model_override or os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+
+    def _init_openai(self, api_key: str, model_override: Optional[str]):
+        self.provider = "openai"
+        self.client = OpenAI(api_key=api_key)
+        self.model = model_override or os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
+
+    def _init_huiyuan(self, api_key: str, base_url: str, path: str, model_override: Optional[str]):
+        self.provider = "huiyuan"
+        self.base_url = base_url.rstrip("/")
+        self.path = path if path.startswith("/") else f"/{path}"
+        self.model = model_override or os.getenv("HUIYUAN_MODEL", "hunyuan-lite")
+        # 采用 Bearer 风格头。如果慧言采用其他签名，可在此扩展。
+        self.headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+        }
+
+    def generate_response(self, prompt: str, system_prompt: Optional[str] = None, max_tokens: int = 200, temperature: float = 0.7) -> str:
         if self.provider == "gemini":
-            # 将系统提示与用户问题组合；Gemini 也支持 system_instruction，但简单合并更兼容
             full_prompt = prompt if not system_prompt else f"{system_prompt}\n\n{prompt}"
             try:
                 model = genai.GenerativeModel(self.model)
@@ -69,11 +102,9 @@ class LLMClient:
                         "max_output_tokens": max_tokens,
                     },
                 )
-                # 从 candidates 中取首条文本
                 text = getattr(resp, "text", None)
                 if text:
                     return text.strip()
-                # 兼容部分响应结构
                 if resp and hasattr(resp, "candidates") and resp.candidates:
                     parts = getattr(resp.candidates[0], "content", None)
                     if parts and hasattr(parts, "parts") and parts.parts:
@@ -83,7 +114,7 @@ class LLMClient:
                 print(f"[LLM ERROR] Gemini API 调用失败: {e}")
                 raise Exception(f"Gemini API 调用失败: {str(e)}")
 
-        elif self.provider == "openai":
+        if self.provider == "openai":
             messages = []
             if system_prompt:
                 messages.append({"role": "system", "content": system_prompt})
@@ -100,11 +131,36 @@ class LLMClient:
                 print(f"[LLM ERROR] OpenAI API 调用失败: {e}")
                 raise Exception(f"OpenAI API 调用失败: {str(e)}")
 
-        else:
-            raise RuntimeError("未知的 LLM 提供方")
+        if self.provider == "huiyuan":
+            # 默认按 OpenAI 兼容的 chat completions 格式构造
+            url = f"{self.base_url}{self.path}"
+            payload = {
+                "model": self.model,
+                "messages": ([{"role": "system", "content": system_prompt}] if system_prompt else []) + [{"role": "user", "content": prompt}],
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+            }
+            try:
+                resp = requests.post(url, headers=self.headers, data=json.dumps(payload), timeout=30)
+                if resp.status_code >= 400:
+                    raise Exception(f"HuiYuan API 调用失败: HTTP {resp.status_code} - {resp.text}")
+                data = resp.json()
+                # 兼容 OpenAI 风格响应
+                if "choices" in data and data["choices"]:
+                    msg = data["choices"][0].get("message", {})
+                    content = msg.get("content", "")
+                    return content.strip()
+                # 兼容文本字段
+                if "text" in data:
+                    return str(data["text"]).strip()
+                raise Exception("HuiYuan 响应解析失败：未找到 choices/message 或 text 字段")
+            except Exception as e:
+                print(f"[LLM ERROR] HuiYuan API 调用失败: {e}")
+                raise Exception(f"HuiYuan API 调用失败: {str(e)}")
 
-    # 下面的业务方法均复用 generate_response，逻辑保持不变
+        raise RuntimeError("未知的 LLM 提供方")
 
+    # 业务封装（复用 generate_response）
     def generate_one_sentence_answer(self, question, subject_name, subject_description, subject_persona):
         system_prompt = f"""你是一个{subject_name}领域的专家。
 学科特点：{subject_description}
