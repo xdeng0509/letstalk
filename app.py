@@ -9,12 +9,37 @@ from agents.subject_agent import SubjectAgent
 from utils.llm_client import LLMClient
 import traceback
 import random
+import logging
+
+# 修复Python 3.6.8 json模块bug（输出缺少逗号）
+import json
+import re
+_original_dumps = json.dumps
+def _patched_dumps(obj, **kwargs):
+    """修复json.dumps缺少逗号的bug"""
+    result = _original_dumps(obj, **kwargs)
+    # 修复模式：在数字/布尔/字符串值后直接跟引号的地方添加逗号
+    result = re.sub(r'(true|false|null|\d+|"[^"]*")\s+"', r'\1, "', result)
+    return result
+json.dumps = _patched_dumps
+
+# 导入日志配置
+from config.logging import setup_logging, app_logger, api_logger
 
 app = Flask(__name__)
 CORS(app)  # 允许跨域请求
 
+# 配置JSON输出格式
+app.config['JSON_AS_ASCII'] = False  # 支持中文
+app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False  # 强制关闭美化
+app.config['JSONIFY_MIMETYPE'] = 'application/json'
+
+# 设置日志
+setup_logging(app)
+
 # 初始化学科库
 subject_library = SubjectLibrary()
+app_logger.info("学科库初始化完成")
 
 # 启动参数/环境：强制仅用LLM（禁止演示）
 import os, sys
@@ -27,13 +52,14 @@ try:
     llm_client = LLMClient()
     demo_mode = False
     llm_available = True
+    app_logger.info(f"LLM客户端初始化成功 - 提供方: {llm_client.provider}")
 except Exception as e:
-    print(f"⚠️  无法连接LLM API: {str(e)}")
+    app_logger.warning(f"无法连接LLM API: {str(e)}")
     if LLM_ONLY:
         # 强制仅用LLM时，直接退出，不允许演示模式
-        print("❌ LLM_ONLY=true，LLM不可用，服务退出。")
+        app_logger.error("LLM_ONLY=true，LLM不可用，服务退出")
         sys.exit(1)
-    print("LLM不可用，但用户可以选择使用演示模式")
+    app_logger.info("LLM不可用，将运行在演示模式")
     llm_client = None
     demo_mode = True
     llm_available = False
@@ -52,7 +78,7 @@ def chat():
     return render_template('index.html')
 
 
-@app.route('/api/ask', methods=['POST'])
+@app.route('/erra-api/ask', methods=['POST'])
 def ask_question():
     """
     处理用户提问，返回学科盲盒开局的回答
@@ -83,7 +109,10 @@ def ask_question():
         question = data.get('question', '').strip()
         subject_count = data.get('subject_count', 3)
         
+        api_logger.info(f"收到问答请求 - 问题: {question[:50]}{'...' if len(question) > 50 else ''}, 学科数: {subject_count}")
+        
         if not question:
+            api_logger.warning("问答请求失败 - 问题为空")
             return jsonify({
                 'success': False,
                 'error': '问题不能为空'
@@ -98,15 +127,19 @@ def ask_question():
             all_groups = subject_library.get_all_subjects()
             all_subjects = all_groups['hot'] + all_groups['cold'] + all_groups['crossover']
             # 构造选择提示
-            selector_prompt = (
-                "你是一个内容路由器。根据用户问题，从下面学科列表中选出最相关的" + str(subject_count) + "个学科名称（中文）。\n" +
-                "用户问题：" + question + "\n\n" +
-                "学科列表：\n" + "\n".join([f"- {s['name']}：{s['description'][:60]}" for s in all_subjects]) + "\n\n" +
-                "只输出学科名称，每行一个，不要编号，不要解释。"
-            )
+            subject_list = "\
+".join(["- {0}：{1}".format(s['name'], s['description'][:60]) for s in all_subjects])
+            selector_prompt = """你是一个内容路由器。根据用户问题，从下面学科列表中选出最相关的{0}个学科名称（中文）。
+
+用户问题：{1}
+
+学科列表：
+{2}
+
+只输出学科名称，每行一个，不要编号，不要解释。""".format(subject_count, question, subject_list)
             try:
                 current_llm = LLMClient()
-                selection_text = current_llm.generate_response(selector_prompt, system_prompt=None, max_tokens=200, temperature=0.2)
+                selection_text = current_llm.generate_response(selector_prompt, system_prompt=None, max_tokens=500, temperature=0.2)
                 selected_names = [x.strip() for x in selection_text.split('\n') if x.strip()]
                 # 映射为对象并去重
                 name_to_subject = {s['name']: s for s in all_subjects}
@@ -163,7 +196,7 @@ def ask_question():
             'question': question,
             'subjects': results,
             'demo_mode': user_mode == 'demo',
-            'llm_provider': ('gemini' if isinstance(llm_client, LLMClient) and getattr(llm_client, 'provider', None) == 'gemini' else ('openai' if isinstance(llm_client, LLMClient) and getattr(llm_client, 'provider', None) == 'openai' else ('demo' if user_mode!='llm' else 'unknown')))
+            'llm_provider': (getattr(llm_client, 'provider', None) if isinstance(llm_client, LLMClient) else ('demo' if user_mode != 'llm' else 'unknown'))
         })
     
     except Exception as e:
@@ -175,7 +208,7 @@ def ask_question():
         }), 500
 
 
-@app.route('/api/subjects', methods=['GET'])
+@app.route('/erra-api/subjects', methods=['GET'])
 def get_all_subjects():
     """
     获取所有学科信息
@@ -203,11 +236,11 @@ def get_all_subjects():
         }), 500
 
 
-@app.route('/api/status', methods=['GET'])
+@app.route('/erra-api/status', methods=['GET'])
 def get_status():
     """
     获取系统状态
-    
+
     Response:
         {
             "success": true,
@@ -234,7 +267,60 @@ def get_status():
     })
 
 
-@app.route('/api/set-mode', methods=['POST'])
+@app.route('/health', methods=['GET'])
+def health_check():
+    """
+    健康检查接口
+    用于负载均衡器、监控系统检查服务状态
+    
+    Response:
+        {
+            "status": "healthy",
+            "timestamp": "2023-11-17T10:30:00Z",
+            "version": "1.0.0",
+            "services": {
+                "subject_library": "ok",
+                "llm_client": "ok"
+            }
+        }
+    """
+    import datetime
+    
+    # 检查服务组件状态
+    services = {}
+    
+    # 检查学科库
+    try:
+        all_subjects = subject_library.get_all_subjects()
+        if all_subjects and len(all_subjects.get('hot', [])) > 0:
+            services['subject_library'] = 'ok'
+        else:
+            services['subject_library'] = 'error'
+    except Exception:
+        services['subject_library'] = 'error'
+    
+    # 检查LLM客户端
+    if llm_available:
+        services['llm_client'] = 'ok'
+    elif demo_mode:
+        services['llm_client'] = 'demo_mode'
+    else:
+        services['llm_client'] = 'unavailable'
+    
+    # 判断整体状态
+    overall_status = 'healthy' if services['subject_library'] == 'ok' else 'degraded'
+    
+    return jsonify({
+        'status': overall_status,
+        'timestamp': datetime.datetime.utcnow().isoformat() + 'Z',
+        'version': '1.0.0',
+        'services': services,
+        'mode': user_mode,
+        'llm_only': LLM_ONLY
+    })
+
+
+@app.route('/erra-api/set-mode', methods=['POST'])
 def set_mode():
     """
     设置运行模式
@@ -294,7 +380,7 @@ def set_mode():
         }), 500
 
 
-@app.route('/api/deep-chat', methods=['POST'])
+@app.route('/erra-api/deep-chat', methods=['POST'])
 def deep_chat():
     """
     深入单聊：与单个学科进行深度对话
@@ -335,7 +421,7 @@ def deep_chat():
                 'error': f'未找到学科：{subject_name}'
             }), 404
         
-        # 创建“每次单聊专用”的 LLM 客户端（真实模型对话），并按需要覆盖 persona
+        # 创建"每次单聊专用"的 LLM 客户端（真实模型对话），并按需要覆盖 persona
         from copy import deepcopy
         subject_info_override = deepcopy(subject_info)
         representative = data.get('representative')  # 前端派系单聊会传入代表人物姓名
@@ -388,7 +474,7 @@ def deep_chat():
         }), 500
 
 
-@app.route('/api/deep-chat-init', methods=['POST'])
+@app.route('/erra-api/deep-chat-init', methods=['POST'])
 def deep_chat_init():
     """
     初始化深入单聊：获取该学科的建议问题
@@ -450,7 +536,7 @@ def deep_chat_init():
         }), 500
 
 
-@app.route('/api/school-pk', methods=['POST'])
+@app.route('/erra-api/school-pk', methods=['POST'])
 def school_pk():
     """
     学科内派别PK：同一学科内两个不同派别的观点对决
@@ -487,7 +573,7 @@ def school_pk():
         school2_name = data.get('school2', '').strip()
         current_round = data.get('round', 1)
         history = data.get('history', [])
-        max_statements = data.get('max_statements', 10)  # 新增：一轮最多的发言数
+        max_statements = data.get('max_statements', 2)  # 改为默认2条：每个agent各说1句
         user_input = data.get('user_input', None)  # 新增：用户输入
         
         if not question or not subject_name or not school1_name or not school2_name:
@@ -539,28 +625,38 @@ def school_pk():
         for i in range(statements_per_round):
             if i % 2 == 0:
                 # school1 发言
+                print(f"[PK] 等待 {school1_name} 第{i//2 + 1}次发言...")
                 content = _generate_school_statement(
                     question, school1_info, subject_info, 
                     history, current_round, i//2 + 1, current_llm
                 )
-                statements.append({
+                statement = {
                     'speaker': 'school1',
                     'name': school1_name,
                     'icon': school1_info['icon'],
                     'content': content
-                })
+                }
+                statements.append(statement)
+                # 立即添加到历史记录，让下一个发言者能看到
+                history.append(statement)
+                print(f"[PK] ✓ {school1_name}: {content[:50]}...")
             else:
                 # school2 发言
+                print(f"[PK] 等待 {school2_name} 第{i//2 + 1}次发言（已看到对方观点）...")
                 content = _generate_school_statement(
                     question, school2_info, subject_info, 
                     history, current_round, i//2 + 1, current_llm
                 )
-                statements.append({
+                statement = {
                     'speaker': 'school2',
                     'name': school2_name,
                     'icon': school2_info['icon'],
                     'content': content
-                })
+                }
+                statements.append(statement)
+                # 立即添加到历史记录，让下一个发言者能看到
+                history.append(statement)
+                print(f"[PK] ✓ {school2_name}: {content[:50]}...")
         
         # 判断是否还有更多轮次（最多3轮，共30句）
         max_rounds = 3
@@ -606,6 +702,12 @@ def _generate_school_statement(question, school_info, subject_info, history, rou
         return _get_demo_school_statement(school_info, round_num, turn)
     
     try:
+        # 判断是否有对方的最新观点
+        opponent_latest = ""
+        if history and len(history) > 0:
+            last_statement = history[-1]
+            opponent_latest = f"\n\n对方最新观点：「{last_statement.get('content', '')}」"
+        
         # 构建派别专属的prompt
         system_prompt = f"""你是{subject_info['name']}领域中{school_info['name']}学派的代表。
 
@@ -615,20 +717,20 @@ def _generate_school_statement(question, school_info, subject_info, history, rou
 
 你正在与{subject_info['name']}的其他学派进行学术辩论。当前是第{round_num}轮第{turn}次发言。
 
-要求：
+重要要求：
 1. 一句话（30-60字），体现{school_info['name']}的独特立场
-2. 观点鲜明，符合该学派的理论特色
-3. 可以适当回应对方观点
-4. 保持学术风范，避免人身攻击
+2. 如果对方刚刚发言，必须针对对方的观点进行回应、反驳或补充
+3. 观点鲜明，符合该学派的理论特色和代表人物的思想
+4. 保持学术风范，避免重复自己之前的话
 """
         
         history_text = ""
-        if history:
-            history_text = "\n历史对话：\n" + "\n".join([f"{h['name']}: {h['content']}" for h in history[-6:]])
+        if history and len(history) > 1:
+            history_text = "\n历史对话：\n" + "\n".join([f"{h.get('name', '对方')}: {h.get('content', '')}" for h in history[-6:]])
         
-        prompt = f"辩论问题：{question}\n{history_text}\n\n请以{school_info['name']}学派的立场发表一句观点（30-60字）。"
+        prompt = f"辩论问题：{question}{history_text}{opponent_latest}\n\n请以{school_info['name']}学派的立场发表一句观点（30-60字），必须针对对方的最新观点进行回应。"
         
-        response = llm_client.generate_response(prompt, system_prompt, max_tokens=120, temperature=0.8)
+        response = llm_client.generate_response(prompt, system_prompt, max_tokens=150, temperature=0.8)
         return response
     
     except Exception as e:
@@ -647,7 +749,7 @@ def _get_demo_school_statement(school_info, round_num, turn):
     return templates[(round_num - 1) * 5 + turn - 1] if ((round_num - 1) * 5 + turn - 1) < len(templates) else templates[0]
 
 
-@app.route('/api/pk', methods=['POST'])
+@app.route('/erra-api/pk', methods=['POST'])
 def subject_pk():
     """
     学科PK：两个学科轮流对话辩论
@@ -710,29 +812,40 @@ def subject_pk():
         agent1 = SubjectAgent(subject1_info, current_llm)
         agent2 = SubjectAgent(subject2_info, current_llm)
         
-        # 生成本轮的对话（根据 max_statements 参数）
+        # 生成本轮的对话：每次2条（每个agent各说1句）
+        max_statements = data.get('max_statements', 2)
         statements = []
         statements_per_round = max_statements
         
         for i in range(statements_per_round):
             if i % 2 == 0:
                 # subject1 发言
+                print(f"[PK] 等待 {subject1_name} 第{i//2 + 1}次发言...")
                 content = agent1.generate_pk_statement(question, history, round_num=current_round, turn=i//2 + 1)
-                statements.append({
+                statement = {
                     'speaker': 'subject1',
                     'name': subject1_name,
                     'icon': subject1_info['icon'],
                     'content': content
-                })
+                }
+                statements.append(statement)
+                # 立即添加到历史记录，让下一个发言者能看到
+                history.append(statement)
+                print(f"[PK] ✓ {subject1_name}: {content[:50]}...")
             else:
                 # subject2 发言
+                print(f"[PK] 等待 {subject2_name} 第{i//2 + 1}次发言（已看到对方观点）...")
                 content = agent2.generate_pk_statement(question, history, round_num=current_round, turn=i//2 + 1)
-                statements.append({
+                statement = {
                     'speaker': 'subject2',
                     'name': subject2_name,
                     'icon': subject2_info['icon'],
                     'content': content
-                })
+                }
+                statements.append(statement)
+                # 立即添加到历史记录，让下一个发言者能看到
+                history.append(statement)
+                print(f"[PK] ✓ {subject2_name}: {content[:50]}...")
         
         # 判断是否还有更多轮次（最多3轮，共30句）
         max_rounds = 3
@@ -790,8 +903,11 @@ if __name__ == '__main__':
     else:
         print("✅ LLM模式：使用真实API")
     print("=" * 50)
-    print("\n🌐 访问地址: http://localhost:5002")
-    print("\n按 Ctrl+C 停止服务\n")
+    print("\
+🌐 访问地址: http://localhost:5002")
+    print("\
+按 Ctrl+C 停止服务\
+")
     
     app.run(debug=True, host='0.0.0.0', port=5002)
 

@@ -121,7 +121,7 @@
             background: #f7f7f7;
             padding: 10px 15px;
             border-bottom: 1px solid #d9d9d9;
-            display: flex;
+            display: none; /* 隐藏成员栏 */
             gap: 10px;
             overflow-x: auto;
         }
@@ -748,6 +748,8 @@
             }
         }
     </style>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="icon" href="/static/favicon.svg">
 </head>
 <body>
     <div class="main-container">
@@ -869,15 +871,20 @@
                 <div class="section-title">📊 PK结果</div>
                 <div id="pkResultContent"></div>
             </div>
+
+
         </div>
     </div>
 
     <script>
+
+
         let demoMode = false;
         let llmAvailable = false;
         let currentMode = 'demo';
         let messageDelay = 1500; // 消息间隔时间（毫秒）- 模拟真实聊天
         let pkStatementDelay = 1200; // PK发言间隔（毫秒）- PK时稍快一些
+        let pkAbort = false; // 是否中止当前轮自动PK展示
         
         // 对话管理
         let conversations = [];  // 所有对话列表
@@ -925,7 +932,7 @@
         // 页面加载
         window.onload = async function() {
             try {
-                const response = await fetch('/api/status');
+                const response = await fetch('/erra-api/status');
                 const data = await response.json();
                 demoMode = data.demo_mode;
                 llmAvailable = data.llm_available;
@@ -1163,13 +1170,19 @@
             }
             
             try {
-                const response = await fetch('/api/set-mode', {
+                const response = await fetch('/erra-api/set-mode', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ mode: newMode })
                 });
                 
-                const data = await response.json();
+                // 修复Python 3.6.8 json.dumps bug（缺少逗号）
+                let text = await response.text();
+                // 简单替换：在数字/布尔值后添加逗号
+                text = text.replace(/(\d)\s+"/g, '$1, "')
+                           .replace(/(true|false|null)\s+"/g, '$1, "')
+                           .replace(/"\s+"/g, '", "');
+                const data = JSON.parse(text);
                 
                 if (data.success) {
                     currentMode = newMode;
@@ -1237,7 +1250,7 @@
                 showTypingIndicator();
                 try {
                     const representative = conv.context.schoolChat ? conv.context.schoolChat.representativeName : undefined;
-                    const response = await fetch('/api/deep-chat', {
+                    const response = await fetch('/erra-api/deep-chat', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({
@@ -1298,7 +1311,7 @@
             showTypingIndicator();
 
             try {
-                const response = await fetch('/api/ask', {
+                const response = await fetch('/erra-api/ask', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ 
@@ -1592,7 +1605,7 @@
             showTypingIndicator();
             
             try {
-                const response = await fetch('/api/ask', {
+                const response = await fetch('/erra-api/ask', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ 
@@ -1720,7 +1733,7 @@
             // 获取该学科的建议问题和派系列表（一进来就显示）
             showTypingIndicator();
             try {
-                const response = await fetch('/api/deep-chat-init', {
+                const response = await fetch('/erra-api/deep-chat-init', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
@@ -1947,7 +1960,7 @@
                 if (currentConv && currentConv.context && currentConv.context.schoolChat) {
                     representative = currentConv.context.schoolChat.representativeName;
                 }
-                const response = await fetch('/api/deep-chat', {
+                const response = await fetch('/erra-api/deep-chat', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
@@ -2114,7 +2127,7 @@
                 // 解析代表人物信息，传给后端让LLM以人物身份生成发言
                 const rep1 = getRepresentativeInfoForSchool(pkState.school1.name);
                 const rep2 = getRepresentativeInfoForSchool(pkState.school2.name);
-                const response = await fetch('/api/school-pk', {
+                const response = await fetch('/erra-api/school-pk', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
@@ -2207,6 +2220,7 @@
 
         // 逐条显示PK发言（使用代表人物与真实头像）
         async function displayPKStatements(statements) {
+            pkAbort = false;
             const currentConv = conversations.find(c => c.id === currentConversationId);
             if (!currentConv) return;
             
@@ -2215,6 +2229,12 @@
                 
                 // 显示正在输入
                 showTypingIndicator();
+                
+                // 若用户点击了停止自动PK，则立刻中止后续展示
+                if (pkAbort) {
+                    removeTypingIndicator();
+                    break;
+                }
                 
                 // PK发言延迟：基础延迟 + 随机波动
                 const baseDelay = pkStatementDelay;
@@ -2367,6 +2387,9 @@
                         <button class="send-btn" style="padding: 10px 20px; font-size: 14px;" onclick="continuePK()">
                             ⏭️ 继续PK
                         </button>
+                        <button class="send-btn" style="padding: 10px 20px; font-size: 14px; background: #f39c12;" onclick="stopAutoPK()">
+                            ⏹️ 停止自动PK
+                        </button>
                         <button class="send-btn" style="padding: 10px 20px; font-size: 14px; background: #999;" onclick="endPK()">
                             🏁 结束PK
                         </button>
@@ -2407,6 +2430,15 @@
             // 解除锁在 executePKRound 内部的 removeTypingIndicator 之后
         }
         
+        // 停止自动PK（仅停止本轮自动逐条展示，保留已产生内容与状态）
+        function stopAutoPK() {
+            pkAbort = true;
+            // 也移除“继续PK/结束PK”的按钮，避免重复点击状态混乱
+            const btn = document.getElementById('continuePKBtn');
+            if (btn) btn.remove();
+            addMessageToConversation('system', "Let's Talk 助手", '⏹️ 已停止本轮自动PK展示，你可以手动继续或结束。');
+        }
+
         // 结束PK
         async function endPK() {
             const currentConv = conversations.find(c => c.id === currentConversationId);

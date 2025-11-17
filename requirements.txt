@@ -1,6 +1,16 @@
-openai>=1.0.0
-python-dotenv>=1.0.0
-rich>=13.0.0
-flask>=2.3.0
-flask-cors>=4.0.0
-requests>=2.31.0
+# 核心框架 (兼容Python 3.6)
+flask>=1.1.0,<3.0.0
+flask-cors>=3.0.0,<5.0.0
+
+# 环境配置
+python-dotenv>=0.19.0
+
+# HTTP 请求
+requests>=2.20.0
+
+# 终端美化（可选）
+rich>=10.0.0,<14.0.0
+
+# LLM 客户端 (可选，如果安装失败会跳过)
+# openai>=1.0.0
+# google-generativeai>=0.8.0

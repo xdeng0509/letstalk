@@ -1,0 +1,44 @@
+nohup: ignoring input
+🔍 检查环境配置...
+✅ 慧言 配置检测到
+✅ 环境检查完成
+2025-11-17 21:26:52,436 - root - INFO - logging.py:107 - 日志系统初始化完成 - 级别: INFO
+2025-11-17 21:26:52,436 - root - INFO - logging.py:108 - 主日志文件: logs/letstalk.log
+2025-11-17 21:26:52,436 - root - INFO - logging.py:109 - 错误日志文件: logs/error.log
+2025-11-17 21:26:52,436 - root - INFO - logging.py:110 - LLM日志文件: logs/llm.log
+2025-11-17 21:26:52,436 - letstalk.app - INFO - app.py:42 - 学科库初始化完成
+2025-11-17 21:26:52,437 - letstalk.app - INFO - app.py:55 - LLM客户端初始化成功 - 提供方: huiyuan
+🎁 Let's Talk - 多学科视角Agent
+==================================================
+🔒 LLM专用模式：仅使用真实API，禁止演示
+🤖 LLM提供方: huiyuan
+==================================================
+🌐 访问地址: http://localhost:5002
+📱 产品介绍: http://localhost:5002/
+💬 对话入口: http://localhost:5002/chat
+\n按 Ctrl+C 停止服务\n
+ * Serving Flask app 'app' (lazy loading)
+ * Environment: development
+ * Debug mode: on
+2025-11-17 21:26:52,449 - werkzeug - WARNING - _internal.py:225 -  * Running on all addresses.
+   WARNING: This is a development server. Do not use it in a production deployment.
+🔍 检查环境配置...
+✅ 慧言 配置检测到
+✅ 环境检查完成
+2025-11-17 21:26:52,743 - root - INFO - logging.py:107 - 日志系统初始化完成 - 级别: INFO
+2025-11-17 21:26:52,743 - root - INFO - logging.py:108 - 主日志文件: logs/letstalk.log
+2025-11-17 21:26:52,743 - root - INFO - logging.py:109 - 错误日志文件: logs/error.log
+2025-11-17 21:26:52,743 - root - INFO - logging.py:110 - LLM日志文件: logs/llm.log
+2025-11-17 21:26:52,744 - letstalk.app - INFO - app.py:42 - 学科库初始化完成
+2025-11-17 21:26:52,744 - letstalk.app - INFO - app.py:55 - LLM客户端初始化成功 - 提供方: huiyuan
+🎁 Let's Talk - 多学科视角Agent
+==================================================
+🔒 LLM专用模式：仅使用真实API，禁止演示
+🤖 LLM提供方: huiyuan
+==================================================
+🌐 访问地址: http://localhost:5002
+📱 产品介绍: http://localhost:5002/
+💬 对话入口: http://localhost:5002/chat
+\n按 Ctrl+C 停止服务\n
+2025-11-17 21:26:52,756 - werkzeug - WARNING - _internal.py:225 -  * Debugger is active!
+2025-11-17 21:27:24,637 - letstalk.api - INFO - app.py:112 - 收到问答请求 - 问题: 如何提高学习效率？, 学科数: 3
