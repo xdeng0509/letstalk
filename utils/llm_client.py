@@ -115,7 +115,8 @@ class LLMClient:
                 # 元提示与角色自述检测
                 meta_patterns = [
                     r"^好的[，,、]",  # "好的，用户现在需要我..."
-                    r"用户现在需要我",
+                    r"用户(现在)?需要",
+                    r"用户(问|要求|让)",
                     r"你要求我",
                     r"你让我",
                     r"系统提示",
@@ -129,7 +130,14 @@ class LLMClient:
                     r"^结合.*?概念",  # "结合核心概念..."
                     r"作为[^，。:：]*?(身份|角度|学派|专家)",
                     r"以[^，。:：]*?的(口吻|身份|视角|角度)",
-                    r"具体有实质内容"
+                    r"具体有实质内容",
+                    r"首先.*?得回忆",  # 思考链泄露特征
+                    r"我得考虑",
+                    r"或者考虑",
+                    r"需要.*?更(基础|偏向|简单)",
+                    r"理论(提到|认为)",
+                    r"不过用户",
+                    r"另外.*?认为"
                 ]
                 if any(re.search(p, s_strip) for p in meta_patterns):
                     continue
@@ -198,9 +206,10 @@ class LLMClient:
                 if "choices" in data and data["choices"]:
                     msg = data["choices"][0].get("message", {})
                     content = msg.get("content", "")
-                    # 如果content为空，尝试使用reasoning_content（针对T1等思考链模型）
+                    # 注意：不使用reasoning_content，因为那是模型的思考过程，不应返回给用户
+                    # 如果content为空，说明模型配置有问题或参数不正确
                     if not content:
-                        content = msg.get("reasoning_content", "")
+                        raise Exception("模型返回内容为空，请检查模型配置或提示词设置")
                     return self._sanitize_output(content.strip())
                 # 兼容文本字段
                 if "text" in data:
